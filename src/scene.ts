@@ -6,6 +6,7 @@ import { LedController } from './leds';
 import { LedScene } from './led-scene';
 import { buildGallery } from './gallery';
 import { HumanStencil } from './human-stencil';
+import { constrainGalleryCamera } from './camera-bounds';
 import { softenGridNormals } from './normals';
 
 function clothGeometry(simulation: ClothSimulation) {
@@ -79,6 +80,7 @@ export class FabricScene {
     this.controls.maxDistance = 26;
     this.controls.maxPolarAngle = Math.PI * 0.92;
     this.controls.enablePan = true;
+    this.controls.addEventListener('change',()=>this.constrainCamera());
 
     this.scene.add(this.ambientLight);
     const key = this.keyLight;
@@ -227,6 +229,7 @@ export class FabricScene {
     return {
       humanScreen: new THREE.Vector3(this.human.mesh.position.x,-.05,this.human.mesh.position.z).project(this.camera).toArray(),
       humanPosition: this.human.position, humanSelected: this.human.selected, ambient: this.leds.settings.ambient,
+      cameraPosition: this.camera.position.toArray(), cameraTarget: this.controls.target.toArray(),
       heads: this.heads.length,
       leds: this.ledScene.diagnostics(),
       surfaceVertices: this.cloth.geometry.getAttribute('position').count,
@@ -235,6 +238,10 @@ export class FabricScene {
       minimumRodClearance: Math.min(...this.rods.map((rod, i) => this.simulation.pistonPositions[i] - rod.position.z - rod.scale.y / 2)),
       geometries: this.renderer.info.memory.geometries,
     };
+  }
+
+  private constrainCamera() {
+    if(constrainGalleryCamera(this.camera.position,this.controls.target))this.camera.lookAt(this.controls.target);
   }
 
   setSelection(id: number) { this.selected = id; }
@@ -282,6 +289,7 @@ export class FabricScene {
     this.marker.position.set(selected.x, selected.y, this.simulation.pistonPositions[this.selected] + 0.004);
     this.marker.visible = this.cloth.visible && !this.presentation;
     this.controls.update();
+    this.constrainCamera();
     this.renderer.render(this.scene, this.camera);
   }
 }

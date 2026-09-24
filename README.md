@@ -126,3 +126,6 @@ The root `faraway-landscapes.json` is bundled into every production build and lo
 To change the default for everyone: export the desired study, replace `faraway-landscapes.json` at the repository root, commit and push to `main`. The Pages workflow publishes the new version automatically. The JSON is bundled with a content-hashed URL so new builds do not keep using an old cached configuration.
 
 `node tests/published-default-smoke.mjs` verifies all control values, piston positions, overrides, animation phase and human placement in both clean and previously configured browsers.
+
+
+Camera navigation stops 12 cm inside the gallery's side walls, back wall, ceiling and floor. The open front (+Z) remains passable for wider views. Limits apply to orbit, pan, zoom, damping, camera presets and viewport resizing in both gallery and studio. Run `node tests/camera-smoke.mjs` for interaction checks.
