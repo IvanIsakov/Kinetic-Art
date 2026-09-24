@@ -1,0 +1,32 @@
+import { chromium } from '@playwright/test';
+import assert from 'node:assert/strict';
+const browser=await chromium.launch({channel:'msedge',headless:true});
+const page=await browser.newPage({viewport:{width:1440,height:1000}});
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+await page.goto('http://127.0.0.1:5173/');await page.waitForFunction(()=>window.__fabricStudy);
+await page.waitForTimeout(1800);await page.screenshot({path:'tmp/qa/gallery.png'});
+assert.ok(await page.locator('.panel').isHidden());
+await page.locator('#studio-toggle').click();
+await page.getByRole('button',{name:'Pause simulation',exact:true}).click();
+for(const [id,value] of [['columns','7'],['rows','6'],['resolution','36'],['pattern','ripple']])await page.locator('#'+id).selectOption(value);
+for(const [id,value] of [['tension','230'],['resistance','170'],['amplitude','280'],['speed','1.3'],['damping','80']]){await page.locator('#'+id).fill(value);await page.locator('#'+id).dispatchEvent('input');}
+await page.locator('#normal-smoothing').uncheck();
+await page.getByRole('button',{name:'Select piston row 2 column 3',exact:true}).click();await page.locator('#piston').fill('200');await page.locator('#piston').dispatchEvent('input');
+await page.getByRole('button',{name:'Lighting',exact:true}).click();
+await page.locator('#led-pattern').selectOption('rainbow-chase');
+for(const [id,value] of [['led-depth','750'],['led-count','87'],['led-period','25'],['led-brightness','145'],['ambient','42']]){await page.locator('#'+id).fill(value);await page.locator('#'+id).dispatchEvent('input');}
+await page.locator('#led-playing').uncheck();await page.locator('#led-shadows').uncheck();
+const snapshot=()=>page.evaluate(()=>{const s=window.__fabricStudy;return {settings:s.settings,columns:s.columns,rows:s.rows,resolution:s.resolution,leds:s.leds.settings,count:s.leds.count,pistons:s.pistons,overrides:s.overrides,running:s.running,smooth:s.smoothShading}});
+const before=await snapshot();
+await page.locator('#config-name').fill('Investor study');await page.locator('#config-default').click();
+assert.match(await page.locator('#config-status').textContent(),/Saved/);
+await page.reload();await page.waitForFunction(()=>window.__fabricStudy);assert.deepEqual(await snapshot(),before);assert.ok(await page.locator('.panel').isHidden());
+await page.locator('#studio-toggle').click();await page.locator('#config-name').fill('Other');await page.locator('#config-save').click();
+await page.getByRole('button',{name:'Lighting',exact:true}).click();
+await page.locator('#led-depth').fill('400');await page.locator('#led-depth').dispatchEvent('input');
+await page.locator('#config-list').selectOption('Investor study');await page.locator('#config-load').click();assert.deepEqual(await snapshot(),before);
+await page.locator('#config-file').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{"version":99}')});await page.waitForFunction(()=>document.getElementById('config-status').textContent.includes('Import failed'));assert.deepEqual(await snapshot(),before);
+const downloadPromise=page.waitForEvent('download');await page.locator('#config-export').click();const download=await downloadPromise;await download.saveAs('tmp/qa/exported-config.json');
+await page.locator('#config-file').setInputFiles('tmp/qa/exported-config.json');await page.waitForFunction(()=>document.getElementById('config-status').textContent.includes('Imported'));assert.deepEqual(await snapshot(),before);
+await page.locator('#studio-toggle').click();await page.setViewportSize({width:390,height:844});await page.waitForTimeout(300);await page.screenshot({path:'tmp/qa/gallery-mobile.png'});
+assert.deepEqual(errors,[]);await browser.close();console.log('Gallery, full settings/default reload, named switching, import/export and mobile checks passed');
