@@ -129,3 +129,14 @@ To change the default for everyone: export the desired study, replace `faraway-l
 
 
 Camera navigation stops 12 cm inside the gallery's side walls, back wall, ceiling and floor. The open front (+Z) remains passable for wider views. Limits apply to orbit, pan, zoom, damping, camera presets and viewport resizing in both gallery and studio. Run `node tests/camera-smoke.mjs` for interaction checks.
+# Mixed reality (WebXR)
+
+Open the HTTPS site in a headset browser that supports WebXR `immersive-ar`, then choose **View in mixed reality**. Allow the browser's XR permissions and complete the headset's floor setup. An unsupported desktop browser shows an explanatory disabled button. A LAN address served over plain HTTP is not sufficient; GitHub Pages supplies HTTPS.
+
+In mixed reality the sculpture retains its real 2 × 1.5 m fabric size, current fabric/light configuration and animation. The gallery, human and selection marker are hidden, with a transparent background for passthrough. Its feet sit at the device's `local-floor` height. It initially appears 1.8 m to your right and 1.5 m ahead, facing you, and stays in that location as you walk around.
+
+Point a controller downward and press its primary trigger/select to move the sculpture to that point on the floor (1.3–6 m from you). Screen-based AR input can tap/select instead. Where DOM overlay is supported, **Place beside me** repeats the initial placement and **Exit mixed reality** returns to the gallery. The headset's system menu can always be used to leave the session. Gallery camera position and fabric display options are restored on exit.
+
+Placement uses the device floor reference, not room scanning or hit testing. It assumes a flat floor; it does not detect furniture, stairs, walls or real-world occlusion. Position is retained during the session, not saved between headset sessions. After a reference-space reset, it is placed beside you again. Floor accuracy depends on headset setup. No opaque VR fallback is used.
+
+Headset performance and passthrough must be verified on hardware. If necessary, lower the fabric vertex count in Studio before entering XR, or disable LED shadows. This implementation does not silently change your saved configuration.

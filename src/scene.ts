@@ -34,6 +34,9 @@ export function pistonRenderPose(z: number) {
 export class FabricScene {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
+  readonly sculpture = new THREE.Group();
+  private surroundings = new THREE.Group();
+  mixedReality = false;
   readonly camera = new THREE.PerspectiveCamera(38, 1, 0.01, 40);
   readonly controls: OrbitControls;
   readonly cloth: THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhysicalMaterial>;
@@ -60,7 +63,10 @@ export class FabricScene {
   private normalScratch = new Float32Array(0);
 
   constructor(private host: HTMLElement, private simulation: ClothSimulation) {
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    this.renderer.xr.enabled = true;
+    this.renderer.xr.setReferenceSpaceType('local-floor');
+    this.scene.add(this.sculpture, this.surroundings);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -82,7 +88,7 @@ export class FabricScene {
     this.controls.enablePan = true;
     this.controls.addEventListener('change',()=>this.constrainCamera());
 
-    this.scene.add(this.ambientLight);
+    this.sculpture.add(this.ambientLight);
     const key = this.keyLight;
     key.position.set(-2.6, 2.7, 1.4);
     key.target.position.set(0, 0, 0);
@@ -91,19 +97,19 @@ export class FabricScene {
     key.shadow.normalBias = 0.008;
     key.shadow.bias = -0.00015;
     key.shadow.camera.near = 0.1;
-    this.scene.add(key, key.target);
+    this.sculpture.add(key, key.target);
     const fill = this.fillLight;
     fill.position.set(2, 0.5, 3);
-    this.scene.add(fill);
+    this.sculpture.add(fill, fill.target);
 
-    this.gallery=buildGallery(this.scene);
-    this.human=new HumanStencil(this.scene);
+    this.gallery=buildGallery(this.surroundings);
+    this.human=new HumanStencil(this.surroundings);
     this.renderer.domElement.tabIndex=0;
 
     const metal = new THREE.MeshStandardMaterial({ color: '#292d2d', metalness: 0.65, roughness: 0.38 });
     const box = (w: number, h: number, d: number, x: number, y: number, z: number) => {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), metal);
-      mesh.position.set(x, y, z); mesh.castShadow = mesh.receiveShadow = true; this.scene.add(mesh);
+      mesh.position.set(x, y, z); mesh.castShadow = mesh.receiveShadow = true; this.sculpture.add(mesh);
     };
     box(WIDTH + 0.16, 0.045, 0.28, 0, HEIGHT / 2 + 0.06, -0.19);
     box(WIDTH + 0.16, 0.045, 0.28, 0, -HEIGHT / 2 - 0.06, -0.19);
@@ -113,7 +119,7 @@ export class FabricScene {
       box(0.04, 0.12, 0.05, x, -0.87, -0.2);
       box(0.19, 0.025, 0.46, x, -0.915, -0.2);
     }
-    this.scene.add(this.pistonGroup);
+    this.sculpture.add(this.pistonGroup);
     this.buildPistons();
     const geometry = clothGeometry(simulation);
     // A restrained procedural weave. The folds themselves come from simulated geometry.
@@ -137,14 +143,15 @@ export class FabricScene {
     this.cloth = new THREE.Mesh(geometry, material);
     this.cloth.castShadow = this.cloth.receiveShadow = true;
     this.cloth.frustumCulled = false;
-    this.scene.add(this.cloth);
-    this.ledScene = new LedScene(this.scene, this.leds);
+    this.sculpture.add(this.cloth);
+    this.ledScene = new LedScene(this.sculpture, this.leds);
     this.marker.renderOrder = 10;
-    this.scene.add(this.marker);
+    this.sculpture.add(this.marker);
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
     this.renderer.domElement.addEventListener('pointerdown', e => { this.down = { x: e.clientX, y: e.clientY }; });
     this.renderer.domElement.addEventListener('pointerup', e => {
+      if (this.mixedReality) return;
       if (Math.hypot(e.clientX - this.down.x, e.clientY - this.down.y) > 5) return;
       const rect = this.renderer.domElement.getBoundingClientRect();
       const ray=new THREE.Raycaster();
@@ -241,12 +248,14 @@ export class FabricScene {
   }
 
   private constrainCamera() {
+    if (this.mixedReality) return;
     if(constrainGalleryCamera(this.camera.position,this.controls.target))this.camera.lookAt(this.controls.target);
   }
 
   setSelection(id: number) { this.selected = id; }
   setSelectionHandler(handler: (id: number) => void) { this.onSelect = handler; }
   setView(view: string) {
+    if (this.mixedReality) return;
     this.currentView = view;
     const views: Record<string, number[]> = { gallery: [3.1, .65, 6.8], perspective: [1.8, 0.85, 3.5], front: [0, 0.1, 3.9], side: [4.4, 0.7, 1.5] };
     const p = views[view] ?? views.perspective;
@@ -254,6 +263,7 @@ export class FabricScene {
     this.camera.position.set(view === 'gallery' && this.camera.aspect < .8 ? .5 : p[0], p[1], p[2] * fit); this.controls.target.set(view === 'gallery' ? .45 : 0, view === 'gallery' ? .45 : .1, 0); this.controls.update();
   }
   resize() {
+    if (this.mixedReality) return;
     const { width, height } = this.host.getBoundingClientRect();
     this.renderer.setSize(width, height);
     this.camera.aspect = width / Math.max(1, height); this.camera.updateProjectionMatrix();
@@ -287,9 +297,30 @@ export class FabricScene {
     });
     const selected = this.simulation.pistonXY[this.selected];
     this.marker.position.set(selected.x, selected.y, this.simulation.pistonPositions[this.selected] + 0.004);
-    this.marker.visible = this.cloth.visible && !this.presentation;
-    this.controls.update();
-    this.constrainCamera();
+    this.marker.visible = this.cloth.visible && !this.presentation && !this.mixedReality;
+    if (!this.mixedReality) { this.controls.update(); this.constrainCamera(); }
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /** Returns an idempotent restore function, including failed session startup. */
+  enterMixedReality() {
+    const background=this.scene.background, position=this.camera.position.clone(), rotation=this.camera.quaternion.clone();
+    const target=this.controls.target.clone(), visible=this.cloth.visible, wireframe=this.cloth.material.wireframe;
+    const enabled=this.controls.enabled;
+    this.mixedReality=true;this.controls.enabled=false;this.human.select(false);
+    this.surroundings.visible=false;this.scene.background=null;this.renderer.setClearAlpha(0);
+    this.cloth.visible=true;this.cloth.material.wireframe=false;this.marker.visible=false;
+    this.sculpture.visible=false;
+    this.camera.position.set(0,0,0);this.camera.quaternion.identity();this.camera.updateMatrixWorld();
+    let restored=false;
+    return ()=>{
+      if(restored)return;restored=true;
+      this.mixedReality=false;this.surroundings.visible=true;this.scene.background=background;
+      this.sculpture.visible=true;this.sculpture.position.set(0,0,0);this.sculpture.quaternion.identity();
+      this.cloth.visible=visible;this.cloth.material.wireframe=wireframe;
+      this.camera.position.copy(position);this.camera.quaternion.copy(rotation);this.controls.target.copy(target);this.controls.enabled=enabled;
+      const {width,height}=this.host.getBoundingClientRect();this.renderer.setSize(width,height);
+      this.camera.aspect=width/Math.max(1,height);this.camera.updateProjectionMatrix();this.camera.updateMatrixWorld();
+    };
   }
 }

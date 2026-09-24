@@ -10,7 +10,7 @@ export class LedScene {
   private color = new THREE.Color();
   private colorSum = new THREE.Color();
   private shadows = true;
-  constructor(private scene: THREE.Scene, readonly controller: LedController) {
+  constructor(private scene: THREE.Object3D, readonly controller: LedController) {
     scene.add(this.railGroup);
     const railMaterial = new THREE.MeshStandardMaterial({ color: '#242a29', metalness: .5, roughness: .4 });
     for (const [w, h, x, y] of [

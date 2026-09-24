@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 /** Gallery architecture; every room light follows the ambient control. */
-export function buildGallery(scene: THREE.Scene) {
+export function buildGallery(scene: THREE.Object3D) {
   const plaster = new THREE.MeshStandardMaterial({color:'#f3f1eb',roughness:.94});
   const stone = new THREE.MeshStandardMaterial({color:'#c9c6bc',roughness:.72});
   const ceiling = new THREE.MeshStandardMaterial({color:'#f5f4ee',roughness:.95,emissive:'#f5f4ee',emissiveIntensity:.28});

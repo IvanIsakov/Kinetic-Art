@@ -107,3 +107,12 @@ footer p { margin: 0; }
 #human-tools { position:absolute; left:50%; transform:translateX(-50%); bottom:85px; background:#f6f5efed; color:#30392f; padding:12px 16px; max-width:90%; font-size:11px; text-align:center; z-index:3; }
 #human-tools div { display:flex; justify-content:center; gap:7px; margin-top:9px; }
 #human-tools button { padding:7px 13px; background:#fffdf5; }
+
+#xr-tools { position:fixed; right:18px; bottom:18px; z-index:20; display:flex; flex-wrap:wrap; gap:8px; max-width:min(390px,calc(100vw - 36px)); padding:12px; background:#f8f7f2ed; color:#303a2e; border:1px solid #c6c9be; border-radius:8px; }
+#xr-tools button { padding:10px 14px; background:#fffdf5; font-size:12px; }
+#xr-tools button:disabled { opacity:.65; cursor:default; }
+#xr-status { flex-basis:100%; font-size:11px; line-height:1.5; }
+.in-xr #app { visibility:hidden; }
+#xr-overlay { background:transparent; pointer-events:none; }
+#xr-tools { pointer-events:auto; }
+@media(max-width:640px) { #xr-tools { bottom:80px; right:12px; max-width:260px; } }

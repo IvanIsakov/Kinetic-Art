@@ -12,7 +12,7 @@ export class HumanStencil {
   private texture:THREE.Texture;
   onSelect=(selected:boolean)=>{};
   onStorageError=()=>{};
-  constructor(scene:THREE.Scene){
+  constructor(scene:THREE.Object3D){
     this.texture=new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}assets/human-silhouette.png`,texture=>{
       const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=1536;
       const ctx=canvas.getContext('2d')!;ctx.drawImage(texture.image,0,0);this.pixels=ctx.getImageData(0,0,1024,1536).data;

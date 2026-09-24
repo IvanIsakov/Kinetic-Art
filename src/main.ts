@@ -2,6 +2,7 @@ import './style.css';
 import publishedConfigJson from '../faraway-landscapes.json?raw';
 import { ClothSimulation, FIXED_DT, MAX_STROKE, RESOLUTIONS, type Pattern, type EdgeMode, defaults } from './cloth';
 import { FabricScene } from './scene';
+import { MixedReality } from './mixed-reality';
 import { type LedPattern } from './leds';
 import { CONFIG_KEY, validateConfig, type Configuration, type Library, type ControlRule } from './configurations';
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -159,15 +160,17 @@ $('play').addEventListener('click',()=>{running=!running;updatePlayback();});
 $('reset').addEventListener('click',()=>{simulation.reset();scene.invalidateFabric();scene.leds.phase=0;elapsed=0;accumulator=0;updatePistonUI();});updatePlayback();
 let last=performance.now(),accumulator=0,elapsed=0,statTime=last,ledPreviewTime=last,frames=0,simMs=0,simSamples=0;
 document.addEventListener('visibilitychange',()=>{last=performance.now();accumulator=0;});
-function frame(now:number){
- requestAnimationFrame(frame);const delta=Math.min((now-last)/1000,.05);last=now;if(document.hidden)return;
+const mixedReality=new MixedReality(scene);
+function frame(now:number,xrFrame?:XRFrame){
+ const delta=Math.max(0,Math.min((now-last)/1000,.05));last=now;if(document.hidden&&!scene.mixedReality)return;
+ mixedReality.update(xrFrame);
  if(running){scene.leds.advance(delta);elapsed+=delta;}
  if(running&&fabricPlaying){accumulator+=delta;const start=performance.now();let steps=0;while(accumulator>=FIXED_DT&&steps<6){simulation.step();accumulator-=FIXED_DT;steps++;}simMs+=performance.now()-start;simSamples++;}else accumulator=0;
  scene.draw(running&&fabricPlaying);frames++;
  if(now-ledPreviewTime>100&&!$('light-controls').hidden){scene.leds.samples.forEach((s,i)=>{const gain=Math.min(1,s.level);ledChips[i].style.background=`rgb(${s.r*gain*255} ${s.g*gain*255} ${s.b*gain*255})`;});ledPreviewTime=now;}
  if(now-statTime>600){const m=simulation.metrics();$('depth').textContent=`${Math.round((m.maxZ-m.minZ)*1000)} mm`;$('strain').textContent=`${(m.meanStrain*100).toFixed(1)}% / ${(m.maxStrain*100).toFixed(1)}%`;$('performance').textContent=`${Math.round(frames*1000/(now-statTime))} fps · ${(simMs/Math.max(1,simSamples)).toFixed(1)} ms cloth`;$('time').textContent=`${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(Math.floor(elapsed%60)).padStart(2,'0')}`;updatePistonUI();frames=0;simMs=0;simSamples=0;statTime=now;}
 }
-requestAnimationFrame(frame);
+scene.renderer.setAnimationLoop(frame);
 Object.defineProperty(window,'__fabricStudy',{get:()=>({metrics:simulation.metrics(),settings:{...simulation.settings},running,fabricPlaying,resolution:simulation.segmentsX,fabricTime:simulation.time,smoothShading:scene.smoothShading,presentation:scene.presentation,overrides:Array.from(simulation.overrides),leds:{count:scene.leds.count,phase:scene.leds.phase,settings:{...scene.leds.settings},samples:scene.leds.samples.map(s=>({...s}))},columns:simulation.cols,rows:simulation.rows,rendering:scene.diagnostics(),pistons:Array.from(simulation.pistonPositions),selected,finite:simulation.positions.every(Number.isFinite),defaults})});
 
 // Save all editing controls plus the live solver state, so frozen studies also restore faithfully.
