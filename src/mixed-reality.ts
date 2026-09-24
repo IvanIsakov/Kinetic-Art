@@ -13,15 +13,18 @@ export class MixedReality {
   private button=document.createElement('button');
   private status=document.createElement('span');
   private recenter=document.createElement('button');
+  private panel=document.createElement('div');
+  private showStatus(message: string) { this.status.textContent=message;this.button.title=message; }
   private viewer=new Vector3();
   private onReset=()=>{this.pendingPlacement=true;this.view.sculpture.visible=false;};
 
   constructor(private view: FabricScene) {
     this.overlay.id='xr-overlay';this.status.id='xr-status';this.status.setAttribute('role','status');
-    this.button.textContent='Checking mixed reality…';this.button.disabled=true;this.button.setAttribute('aria-describedby','xr-status');
+    this.button.id='enter-mr';this.button.textContent='Enter MR';this.button.disabled=true;this.button.setAttribute('aria-describedby','xr-status');
     this.recenter.textContent='Place beside me';this.recenter.hidden=true;
-    const panel=document.createElement('div');panel.id='xr-tools';
-    panel.append(this.button,this.recenter,this.status);this.overlay.append(panel);document.body.append(this.overlay);
+    this.panel.id='xr-tools';
+    this.panel.append(this.recenter,this.status);this.overlay.append(this.panel);document.body.append(this.overlay);
+    document.getElementById('play')!.after(this.button);
     this.overlay.addEventListener('beforexrselect',event=>event.preventDefault());
     this.button.addEventListener('click',()=>void this.toggle());
     this.recenter.addEventListener('click',()=>{this.pendingPlacement=true;});
@@ -29,21 +32,22 @@ export class MixedReality {
   }
 
   private async checkSupport() {
-    if(!window.isSecureContext){this.button.textContent='Mixed reality needs HTTPS';this.status.textContent='Open the HTTPS site in your headset browser.';return;}
-    if(!navigator.xr){this.button.textContent='Mixed reality unavailable';this.status.textContent='Open this page in a WebXR passthrough-capable browser.';return;}
+    if(!window.isSecureContext){this.showStatus('Open the HTTPS site in your headset browser.');return;}
+    if(!navigator.xr){this.showStatus('Open this page in a WebXR passthrough-capable browser.');return;}
     try {
       const supported=await navigator.xr.isSessionSupported('immersive-ar');
-      this.button.disabled=!supported;this.button.textContent=supported?'View in mixed reality':'Mixed reality unavailable';
-      this.status.textContent=supported?'Life size · placed on your floor beside you':'This browser does not support immersive AR.';
-    }catch{this.button.textContent='Mixed reality unavailable';this.status.textContent='WebXR access is blocked by this browser.';}
+      this.button.disabled=!supported;
+      this.showStatus(supported?'Life size · placed on your floor beside you':'This browser does not support immersive AR.');
+    }catch{this.showStatus('WebXR access is blocked by this browser.');}
   }
 
   private finish=()=>{
     this.space?.removeEventListener('reset',this.onReset);this.space=null;
     this.session=null;this.restore?.();this.restore=null;
     this.pendingPlacement=true;this.busy=false;this.button.disabled=false;
-    this.button.textContent='View in mixed reality';this.recenter.hidden=true;
-    document.body.classList.remove('in-xr');this.status.textContent='Mixed reality ended. Your gallery view is restored.';
+    this.button.textContent='Enter MR';this.recenter.hidden=true;
+    document.getElementById('play')!.after(this.button);
+    document.body.classList.remove('in-xr');this.showStatus('Mixed reality ended. Your gallery view is restored.');
   };
 
   private async toggle() {
@@ -63,13 +67,14 @@ export class MixedReality {
       this.space=this.view.renderer.xr.getReferenceSpace();this.space?.addEventListener('reset',this.onReset);
       session.addEventListener('select',event=>this.select(event));
       this.button.textContent='Exit mixed reality';this.button.disabled=false;this.recenter.hidden=false;
+      this.panel.prepend(this.button);
       document.body.classList.add('in-xr');
       this.status.textContent='Point at the floor and press trigger / tap to move. Use your headset menu to exit.';
     }catch(error){
       const session=this.session;
       if(session){try{await session.end();}catch{/* Restore even when startup failed. */}}
       this.finish();
-      this.status.textContent=error instanceof Error?`Could not start mixed reality: ${error.message}`:'Could not start mixed reality. Check floor setup and permissions.';
+      this.showStatus(error instanceof Error?`Could not start mixed reality: ${error.message}`:'Could not start mixed reality. Check floor setup and permissions.');
     }finally{this.busy=false;}
   }
 

@@ -44,7 +44,7 @@ h1 { font: 400 35px Georgia, serif; letter-spacing: -.8px; margin: 0; }
 .stage-caption { position: absolute; bottom: 87px; left: 25px; color: #aeb7aa; font-size: 10px; letter-spacing: .4px; pointer-events: none; }
 .transport { position: absolute; bottom: 20px; left: 22px; right: 22px; min-height: 47px; display: flex; align-items: center; gap: 10px; border-top: 1px solid #ffffff25; padding-top: 15px; color: #b6bdaf; }
 .transport button { border: none; padding: 9px 14px; color: #e8ebdd; background: #ffffff10; font-size: 11px; }
-.transport #play { background: #d9ddc9; color: #293326; min-width: 82px; }
+.transport #play, .transport #enter-mr { background: #d9ddc9; color: #293326; min-width: 82px; }
 .transport .clock { font-size: 10px; font-variant-numeric: tabular-nums; margin-left: 3px; }
 .transport .hint { margin-left: auto; font-size: 9px; letter-spacing: .3px; }
 .panel { background: #f6f6ef; border-left: 1px solid var(--line); max-height: 850px; overflow-y: auto; scrollbar-width: thin; }
@@ -115,4 +115,5 @@ footer p { margin: 0; }
 .in-xr #app { visibility:hidden; }
 #xr-overlay { background:transparent; pointer-events:none; }
 #xr-tools { pointer-events:auto; }
+body:not(.in-xr) #xr-tools { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }
 @media(max-width:640px) { #xr-tools { bottom:80px; right:12px; max-width:260px; } }

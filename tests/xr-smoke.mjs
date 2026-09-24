@@ -6,9 +6,9 @@ try {
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('http://127.0.0.1:5173/');
   await page.waitForFunction(()=>window.__fabricStudy?.finite);
-  await page.waitForFunction(()=>!document.querySelector('#xr-tools button').textContent.includes('Checking'));
-  assert.match(await page.locator('#xr-tools button').first().textContent(),/mixed reality|Mixed reality/);
-  assert.ok(await page.locator('#xr-tools button').first().isDisabled());
+  await page.waitForFunction(()=>document.querySelector('#enter-mr').title.length>0);
+  assert.equal(await page.locator('#enter-mr').textContent(),'Enter MR');
+  assert.ok(await page.locator('#enter-mr').isDisabled());
   await page.screenshot({path:'tmp/qa/xr-desktop.png'});
   const result=await page.evaluate(async()=>{
     const {FabricScene}=await import('/src/scene.ts');
@@ -33,7 +33,7 @@ try {
     const space=new EventTarget();
     view.renderer.xr.setSession=async()=>{};view.renderer.xr.getReferenceSpace=()=>space;
     const mr=new MixedReality(view);await Promise.resolve();
-    const button=document.querySelectorAll('#xr-tools')[1].querySelector('button');button.click();
+    const button=document.getElementById('play').nextElementSibling;button.click();
     await new Promise(r=>setTimeout(r,0));
     const frame={getViewerPose:()=>({transform:{position:{x:0,y:1.7,z:0},orientation:{x:0,y:0,z:0,w:1}}})};
     mr.update(frame);
@@ -46,7 +46,7 @@ try {
     await session.end();await Promise.resolve();
     const endedCleanly=!view.mixedReality&&view.sculpture.position.length()===0&&!document.body.classList.contains('in-xr');
     xr.requestSession=async()=>{throw new DOMException('User denied','NotAllowedError');};button.click();await new Promise(r=>setTimeout(r,0));
-    const denied=!view.mixedReality&&!button.disabled&&button.parentElement.textContent.includes('User denied');
+    const denied=!view.mixedReality&&!button.disabled&&button.title.includes('User denied');
     view.renderer.dispose();host.remove();
     return {entering,restored,mode:requested.mode,floor:requested.options.requiredFeatures,placed,visible,stationary,selected,ended,endedCleanly,denied};
   });
@@ -57,3 +57,4 @@ try {
   assert.deepEqual(errors,[]);
   console.log('Desktop fallback, scene restore, mocked AR lifecycle and placement passed.',result);
 } finally {await browser.close();}
+
