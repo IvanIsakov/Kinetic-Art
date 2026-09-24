@@ -101,10 +101,19 @@ Normals are recomputed from indexed triangles with Three.js computeVertexNormals
 
 ## Gallery presentation and saved configurations
 
-The page opens in presentation mode: the sculpture in a white gallery with a ceiling, linear architectural lighting, a stone floor, and an original procedural 1.75 m clothed scale figure. Room, perspective, front and side camera views are available. Open studio reveals all configuration controls; Back to gallery hides them. The figure is a stylized scale reference, not a scanned human asset. Gallery lighting is separate from the sculpture's adjustable ambient/LED lighting.
+The page opens in presentation mode: the sculpture in a white gallery with a ceiling, linear architectural lighting, a stone floor, and an original procedural 1.75 m clothed scale figure. Room, perspective, front and side camera views are available. Open studio reveals all configuration controls; Back to gallery hides them. The figure is a stylized scale reference, not a scanned human asset. Gallery lighting follows the Ambient light control; LEDs retain independent brightness.
 
 In Studio, enter a name and use Save named, or Save as startup default. Choose a saved configuration and Load to switch. Reusing a name replaces that saved configuration. All current fabric and light parameters are included: matrix, mesh resolution, material settings, piston pattern and overrides, travel, tempo, both animation switches, shading, inspection toggles, LED count/distance/pattern/color/period/brightness/ambient/shadows, global playback state, and the current fabric and piston pose. Loading preserves paused studies; reduced-motion preferences pause playback on startup. Inspection toggles are restored in the studio, while presentation always shows the fabric.
 
 Saves are local to this browser and site address, not shared across devices or automatically published to investors. Export JSON backs up the current study; Import JSON validates and loads it, after which it can be saved locally. Browser storage limits produce a visible error and leave the existing library intact. Clearing browser data removes local configurations. Camera orbit and studio tab selection are not part of fabric/light configurations; startup uses the gallery camera.
 
 The gallery and persistence milestone is implemented. User-authored choreography and online publication remain future work. Run `node tests/configurations-smoke.mjs` to verify default reload, full settings/override restoration, named switching, invalid imports, export/import, and desktop/mobile presentation layouts.
+
+
+## GitHub Pages deployment
+
+Pages uses the GitHub Actions source, with `.github/workflows/pages.yml` testing, building and deploying `dist` on every push to `main`. Vite uses relative asset URLs so the gallery and silhouette work beneath `/Kinetic-Art/`. The source TypeScript must not be served directly using Pages' branch publishing mode. Public site: https://ivanisakov.github.io/Kinetic-Art/ .
+
+Gallery lighting now follows Ambient light, including ceiling illumination. The scale reference is a solid black, transparent photographic-style human stencil. Click the human and use arrow keys to move on the floor, Shift for larger steps, Escape or Done to deselect. The position is saved automatically in this browser and included in named/JSON configurations. The latest independently moved position takes precedence over the startup default's old placement on reload. Localhost and the published site have separate browser storage; export/import transfers studies.
+
+Asset: `public/assets/human-silhouette.png`, generated using the built-in image generation tool; the exact prompt is recorded alongside it. No external image service is needed at runtime.
