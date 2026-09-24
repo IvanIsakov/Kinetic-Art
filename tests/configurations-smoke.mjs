@@ -20,8 +20,8 @@ const snapshot=()=>page.evaluate(()=>{const s=window.__fabricStudy;return {setti
 const before=await snapshot();
 await page.locator('#config-name').fill('Investor study');await page.locator('#config-default').click();
 assert.match(await page.locator('#config-status').textContent(),/Saved/);
-await page.reload();await page.waitForFunction(()=>window.__fabricStudy);assert.deepEqual(await snapshot(),before);assert.ok(await page.locator('.panel').isHidden());
-await page.locator('#studio-toggle').click();await page.locator('#config-name').fill('Other');await page.locator('#config-save').click();
+await page.reload();await page.waitForFunction(()=>window.__fabricStudy);assert.equal((await snapshot()).columns,8);assert.ok(await page.locator('.panel').isHidden());
+await page.locator('#studio-toggle').click();await page.locator('#config-list').selectOption('Investor study');await page.locator('#config-load').click();assert.deepEqual(await snapshot(),before);await page.locator('#config-name').fill('Other');await page.locator('#config-save').click();
 await page.getByRole('button',{name:'Lighting',exact:true}).click();
 await page.locator('#led-depth').fill('400');await page.locator('#led-depth').dispatchEvent('input');
 await page.locator('#config-list').selectOption('Investor study');await page.locator('#config-load').click();assert.deepEqual(await snapshot(),before);

@@ -1,4 +1,5 @@
 import './style.css';
+import publishedConfigJson from '../faraway-landscapes.json?raw';
 import { ClothSimulation, FIXED_DT, MAX_STROKE, RESOLUTIONS, type Pattern, type EdgeMode, defaults } from './cloth';
 import { FabricScene } from './scene';
 import { type LedPattern } from './leds';
@@ -23,11 +24,11 @@ app.innerHTML = `<header class="topbar">
         <div class="panel-title"><h2>Study controls</h2><span>02 / FABRIC + LIGHT</span></div>
         <div class="section configurations"><h3 class="section-heading">Configurations</h3>
 <label class="field" for="config-list">Saved configurations</label><select id="config-list"><option value="">Choose a configuration</option></select>
-<div class="config-actions"><button id="config-load">Load</button><button id="config-delete">Delete</button></div>
+<div class="config-actions"><button id="config-load">Load</button><button id="config-published">Load published default</button><button id="config-delete">Delete</button></div>
 <label class="field" for="config-name">Configuration name</label><input id="config-name" type="text" maxlength="60" placeholder="Evening study">
-<div class="config-actions"><button id="config-save">Save named</button><button id="config-default">Save as startup default</button></div>
+<div class="config-actions"><button id="config-save">Save named</button><button id="config-default">Save as favorite</button></div>
 <div class="config-actions"><button id="config-export">Export JSON</button><button id="config-import">Import JSON</button><input id="config-file" type="file" accept=".json,application/json" hidden></div>
-<p id="config-status" class="small-note" role="status">Saved on this browser. Export a copy to use elsewhere.</p></div>
+<p id="config-status" class="small-note" role="status">Local presets stay in this browser. Every page opening uses the published default.</p></div>
 <div class="panel-tabs" aria-label="Control sections"><button id="fabric-tab" class="active" aria-pressed="true" aria-controls="fabric-controls">Fabric</button><button id="light-tab" aria-pressed="false" aria-controls="light-controls">Lighting</button></div>
         <div id="fabric-controls">
         <div class="section"><h3 class="section-heading">Piston matrix</h3>
@@ -204,7 +205,7 @@ function applyConfig(raw: unknown) {
 }
 function refreshConfigs(selectedName='') {
   const select=$<HTMLSelectElement>('config-list');select.replaceChildren(new Option('Choose a configuration',''));
-  for(const name of Object.keys(library.configs))select.add(new Option(name+(library.defaultName===name?' · startup default':''),name));
+  for(const name of Object.keys(library.configs))select.add(new Option(name+(library.defaultName===name?' · favorite':''),name));
   select.value=selectedName;
 }
 function persist(next:Library) {
@@ -213,10 +214,10 @@ function persist(next:Library) {
 }
 function saveConfiguration(asDefault:boolean) {
   const typed=$<HTMLInputElement>('config-name').value.trim();
-  const name=typed || (asDefault?'Startup default':'');
+  const name=typed || (asDefault?'Favorite':'');
   if(!name){status('Enter a name for this configuration.');$('config-name').focus();return;}
   const next={defaultName:asDefault?name:library.defaultName,configs:{...library.configs,[name]:captureConfig()}};
-  if(persist(next)){refreshConfigs(name);status(`Saved “${name}”${asDefault?' as the startup default':''}.`);}
+  if(persist(next)){refreshConfigs(name);status(`Saved “${name}”${asDefault?' as your favorite':''}.`);}
 }
 $('config-save').addEventListener('click',()=>saveConfiguration(false));
 $('config-default').addEventListener('click',()=>saveConfiguration(true));
@@ -237,7 +238,7 @@ $('config-export').addEventListener('click',()=>{
 $('config-import').addEventListener('click',()=>$<HTMLInputElement>('config-file').click());
 $('config-file').addEventListener('change',async()=>{
   const input=$<HTMLInputElement>('config-file'),file=input.files?.[0];if(!file)return;
-  try{if(file.size>2_000_000)throw new Error('Configuration file is too large.');applyConfig(JSON.parse(await file.text()));status('Imported configuration. Save it by name or as your startup default.');}
+  try{if(file.size>2_000_000)throw new Error('Configuration file is too large.');applyConfig(JSON.parse(await file.text()));status('Imported configuration. Save it by name or as your favorite.');}
   catch(e){status(`Import failed: ${(e as Error).message}`);}finally{input.value='';}
 });
 $('studio-toggle').addEventListener('click',()=>{
@@ -257,14 +258,18 @@ try {
       try{Object.defineProperty(configs,name,{value:validateConfig(value,rules),enumerable:true,configurable:true,writable:true});}catch{status('Some incompatible saved configurations were skipped.');}
     }
     library={configs,defaultName:typeof parsed.defaultName==='string'&&Object.hasOwn(configs,parsed.defaultName)?parsed.defaultName:null};
-    if(library.defaultName){
-      const lastPosition=scene.human.position;
-      applyConfig(configs[library.defaultName]);
-      scene.human.setPosition(lastPosition);
-    }
+
   }
 }catch{status('Saved configurations could not be read. You can still use the studio and export JSON.');}
 refreshConfigs(library.defaultName??'');
+function loadPublishedDefault() {
+  try {
+    applyConfig(JSON.parse(publishedConfigJson));
+    status('Loaded the published default. Local presets remain available in the list.');
+  } catch(error) { status(`The published default could not load: ${(error as Error).message}`); }
+}
+$('config-published').addEventListener('click',loadPublishedDefault);
+loadPublishedDefault();
 // Presentation always opens with the artwork visible; inspection modes remain saved in studio.
 scene.cloth.visible=true;scene.cloth.material.wireframe=false;scene.setView('gallery');
 
